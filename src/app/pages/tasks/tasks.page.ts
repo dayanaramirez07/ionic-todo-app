@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonList,
   IonItem, IonLabel, IonButton, IonButtons, IonIcon,
-  IonSelect, IonSelectOption, IonChip, AlertController,
-  ViewWillEnter
+  IonSelect, IonSelectOption, IonChip,
+  AlertController, ViewWillEnter, IonSpinner
 } from '@ionic/angular/standalone';
+
 import { Task, Category } from 'src/app/models/task.model';
 import { StorageService } from 'src/app/services/storage';
+import { RemoteConfigService } from 'src/app/services/remote-config';
 
 @Component({
   selector: 'app-tasks',
@@ -19,7 +21,8 @@ import { StorageService } from 'src/app/services/storage';
     CommonModule, FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonList,
     IonItem, IonLabel, IonButton, IonButtons, IonIcon,
-    IonSelect, IonSelectOption, IonChip
+    IonSelect, IonSelectOption, IonChip,
+    IonSpinner
   ]
 })
 export class TasksPage implements OnInit, ViewWillEnter {
@@ -27,23 +30,36 @@ export class TasksPage implements OnInit, ViewWillEnter {
   protected tasks: Task[] = [];
   protected categories: Category[] = [];
   protected selectedCategoryId: string | null = null;
+  protected showCompletedTasks: boolean = true;
+  protected isConfigReady: boolean = false;
+  protected visibleTasks: Task[] = [];
 
   constructor(
+    private readonly zone: NgZone,
     private readonly storage: StorageService,
     private readonly alertCtrl: AlertController,
-    private readonly zone: NgZone
+    private readonly remoteConfig: RemoteConfigService
   ) { }
 
-  public ngOnInit() {
-    this.tasks = this.sortTasks(this.storage.getTasks());
+  public async ngOnInit() {
+    this.tasks = this.storage.getTasks();
     this.categories = this.storage.getCategories();
+
+    await this.remoteConfig.initialize();
+    this.showCompletedTasks = this.remoteConfig.getBoolean('show_completed_tasks');
+
+    this.updateVisibleTasks();
+    this.isConfigReady = true;
   }
 
   public ionViewWillEnter() {
     this.tasks = this.sortTasks(this.storage.getTasks());
     this.categories = this.storage.getCategories();
+
+    this.updateVisibleTasks();
   }
 
+  // Helpers
   private normalize(value: string): string {
     return value.toLowerCase();
   }
@@ -54,22 +70,11 @@ export class TasksPage implements OnInit, ViewWillEnter {
 
   private taskExists(title: string): boolean {
     const normalized = this.normalize(title);
-
-    return this.tasks.some(
-      t => this.normalize(t.title) === normalized
-    );
+    return this.tasks.some(t => this.normalize(t.title) === normalized);
   }
 
   private findCategory(categoryId: string | null): Category | undefined {
     return this.categories.find(c => c.id === categoryId);
-  }
-
-  protected get filteredTasks(): Task[] {
-    if (!this.selectedCategoryId) return this.tasks;
-
-    return this.tasks.filter(
-      t => t.categoryId === this.selectedCategoryId
-    );
   }
 
   protected getCategoryName(categoryId: string | null): string {
@@ -80,6 +85,7 @@ export class TasksPage implements OnInit, ViewWillEnter {
     return this.findCategory(categoryId)?.color || '#ccc';
   }
 
+  // Actions
   protected toggleComplete(task: Task) {
     this.tasks = this.sortTasks(
       this.tasks.map(t =>
@@ -90,6 +96,7 @@ export class TasksPage implements OnInit, ViewWillEnter {
     );
 
     this.storage.saveTasks(this.tasks);
+    this.updateVisibleTasks();
   }
 
   protected async addTask() {
@@ -109,7 +116,6 @@ export class TasksPage implements OnInit, ViewWillEnter {
           handler: (data) => {
             const title = data?.title?.trim();
             if (!title) return false;
-
             if (this.taskExists(title)) return false;
 
             this.openCategorySelector(title);
@@ -157,6 +163,7 @@ export class TasksPage implements OnInit, ViewWillEnter {
             this.zone.run(() => {
               this.tasks = [newTask, ...this.tasks];
               this.storage.saveTasks(this.tasks);
+              this.updateVisibleTasks();
             });
 
             return true;
@@ -177,20 +184,34 @@ export class TasksPage implements OnInit, ViewWillEnter {
           text: 'Eliminar',
           role: 'destructive',
           handler: () => {
-            const taskToDelete = this.filteredTasks[index];
+            const taskToDelete = this.visibleTasks[index];
             if (!taskToDelete) return;
 
-            this.tasks = this.tasks.filter(
-              t => t.id !== taskToDelete.id
-            );
-
+            this.tasks = this.tasks.filter(t => t.id !== taskToDelete.id);
             this.storage.saveTasks(this.tasks);
+            this.updateVisibleTasks();
           }
         }
       ]
     });
 
     await alert.present();
+  }
+
+  protected onCategoryChange() {
+    this.updateVisibleTasks();
+  }
+
+  private updateVisibleTasks() {
+    this.visibleTasks = this.tasks.filter(task => {
+      const matchesCategory =
+        !this.selectedCategoryId || task.categoryId === this.selectedCategoryId;
+
+      const matchesCompleted =
+        this.showCompletedTasks || !task.completed;
+
+      return matchesCategory && matchesCompleted;
+    });
   }
 
 }

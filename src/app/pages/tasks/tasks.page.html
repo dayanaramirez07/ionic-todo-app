@@ -3,21 +3,24 @@
     <ion-title>Tareas</ion-title>
 
     <ion-buttons slot="end">
-      <ion-button (click)="addTask()" aria-label="Agregar tarea">
+      <ion-button (click)="addTask()">
         <ion-icon slot="icon-only" name="add"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 
   <ion-toolbar>
-    <ion-select placeholder="Filtrar por categoría" [(ngModel)]="selectedCategoryId"
-      [interfaceOptions]="{ header: 'Categoría' }">
+    <ion-select
+      placeholder="Filtrar por categoría"
+      [(ngModel)]="selectedCategoryId"
+      (ionChange)="onCategoryChange()"
+    >
       <ion-select-option [value]="null">Todas</ion-select-option>
 
       @for (cat of categories; track cat.id) {
-      <ion-select-option [value]="cat.id">
-        {{ cat.name }}
-      </ion-select-option>
+        <ion-select-option [value]="cat.id">
+          {{ cat.name }}
+        </ion-select-option>
       }
     </ion-select>
   </ion-toolbar>
@@ -25,50 +28,75 @@
 
 <ion-content>
 
-  @if (filteredTasks.length > 0) {
-  <ion-list inset="true">
+  @if (!isConfigReady) {
+    <div class="ion-padding ion-text-center">
+      <ion-spinner></ion-spinner>
+      <p>Cargando configuración...</p>
+    </div>
+  } @else {
 
-    @for (task of filteredTasks; track task.id) {
-
-    @let color = getCategoryColor(task.categoryId);
-
-    <ion-item>
-
-      <!-- Toggle -->
-      <ion-button fill="clear" slot="start" (click)="toggleComplete(task); $event.stopPropagation()"
-        aria-label="Marcar como completada">
-        <ion-icon slot="icon-only" [name]="task.completed ? 'checkmark-circle' : 'checkmark-circle-outline'"
-          [color]="task.completed ? 'success' : 'medium'"></ion-icon>
-      </ion-button>
-
-      <!-- Contenido -->
-      <ion-label [class.completed]="task.completed">
-        {{ task.title }}
-
-        <div class="task-category">
-          <ion-chip [style.background]="color + '33'" [style.color]="color">
-            {{ getCategoryName(task.categoryId) }}
-          </ion-chip>
-        </div>
-      </ion-label>
-
-      <!-- Eliminar -->
-      <ion-button fill="clear" slot="end" color="danger" (click)="deleteTask($index); $event.stopPropagation()"
-        aria-label="Eliminar tarea">
-        <ion-icon slot="icon-only" name="trash"></ion-icon>
-      </ion-button>
-
-    </ion-item>
+    @if (!showCompletedTasks) {
+      <ion-item color="warning" lines="none">
+        <ion-icon name="filter-outline" slot="start"></ion-icon>
+        <ion-label>Tareas completadas ocultas</ion-label>
+      </ion-item>
     }
 
-  </ion-list>
-  }
+    @if (visibleTasks.length > 0) {
+      <ion-list inset="true">
 
-  @if (filteredTasks.length === 0) {
-  <div class="empty-state">
-    <ion-icon name="checkmark-circle-outline"></ion-icon>
-    <p>No hay tareas aún</p>
-  </div>
+        @for (task of visibleTasks; track task.id) {
+
+          @let color = getCategoryColor(task.categoryId);
+
+          <ion-item>
+            <ion-button
+              fill="clear"
+              slot="start"
+              (click)="toggleComplete(task)"
+            >
+              <ion-icon
+                slot="icon-only"
+                [name]="task.completed ? 'checkmark-circle' : 'checkmark-circle-outline'"
+                [color]="task.completed ? 'success' : 'medium'"
+              ></ion-icon>
+            </ion-button>
+
+            <ion-label [class.completed]="task.completed">
+              {{ task.title }}
+
+              <div class="task-category">
+                <ion-chip
+                  [style.background]="color + '33'"
+                  [style.color]="color"
+                >
+                  {{ getCategoryName(task.categoryId) }}
+                </ion-chip>
+              </div>
+            </ion-label>
+
+            <ion-button
+              fill="clear"
+              slot="end"
+              color="danger"
+              (click)="deleteTask($index)"
+            >
+              <ion-icon slot="icon-only" name="trash"></ion-icon>
+            </ion-button>
+          </ion-item>
+
+        }
+
+      </ion-list>
+    }
+
+    @if (visibleTasks.length === 0) {
+      <div class="empty-state">
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <p>No hay tareas aún</p>
+      </div>
+    }
+
   }
 
 </ion-content>
