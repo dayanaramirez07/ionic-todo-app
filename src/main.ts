@@ -6,9 +6,15 @@ import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 
 import { addIcons } from 'ionicons';
-import { add, pencil, trash, pricetag, pricetagsOutline } from 'ionicons/icons';
+import {
+  add, pencil, trash, pricetag, pricetagsOutline,
+  checkmarkCircle, checkmarkCircleOutline, filterOutline
+} from 'ionicons/icons';
 
-addIcons({ add, pencil, trash, pricetag, pricetagsOutline });
+addIcons({
+  add, pencil, trash, pricetag, pricetagsOutline,
+  checkmarkCircle, checkmarkCircleOutline, filterOutline
+});
 
 bootstrapApplication(AppComponent, {
   providers: [
