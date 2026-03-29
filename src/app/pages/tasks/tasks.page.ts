@@ -4,7 +4,8 @@ import { FormsModule } from '@angular/forms';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonList,
   IonItem, IonLabel, IonButton, IonButtons, IonIcon,
-  IonSelect, IonSelectOption, IonChip, AlertController
+  IonSelect, IonSelectOption, IonChip, AlertController,
+  ViewWillEnter
 } from '@ionic/angular/standalone';
 import { Task, Category } from 'src/app/models/task.model';
 import { StorageService } from 'src/app/services/storage';
@@ -21,7 +22,7 @@ import { StorageService } from 'src/app/services/storage';
     IonSelect, IonSelectOption, IonChip
   ]
 })
-export class TasksPage implements OnInit {
+export class TasksPage implements OnInit, ViewWillEnter {
 
   protected tasks: Task[] = [];
   protected categories: Category[] = [];
@@ -34,6 +35,11 @@ export class TasksPage implements OnInit {
   ) { }
 
   public ngOnInit() {
+    this.tasks = this.sortTasks(this.storage.getTasks());
+    this.categories = this.storage.getCategories();
+  }
+
+  public ionViewWillEnter() {
     this.tasks = this.sortTasks(this.storage.getTasks());
     this.categories = this.storage.getCategories();
   }
