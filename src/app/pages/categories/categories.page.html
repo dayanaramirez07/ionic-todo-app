@@ -1,0 +1,51 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Categorías</ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="openForm()" aria-label="Agregar categoría">
+        <ion-icon slot="icon-only" name="add"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  @if (categories.length > 0) {
+  <ion-list inset="true">
+
+    @for (cat of categories; track cat.id) {
+
+    <ion-item>
+
+      <ion-icon name="pricetag" slot="start" [style.color]="cat.color"></ion-icon>
+
+      <ion-label>
+        {{ cat.name }}
+      </ion-label>
+
+      <ion-button fill="clear" slot="end" (click)="openForm(cat); $event.stopPropagation()"
+        aria-label="Editar categoría">
+        <ion-icon slot="icon-only" name="pencil"></ion-icon>
+      </ion-button>
+
+      <ion-button fill="clear" slot="end" color="danger" (click)="deleteCategory($index); $event.stopPropagation()"
+        aria-label="Eliminar categoría">
+        <ion-icon slot="icon-only" name="trash"></ion-icon>
+      </ion-button>
+
+    </ion-item>
+    }
+
+  </ion-list>
+  }
+
+  @if (categories.length === 0) {
+  <div class="empty-state">
+    <ion-icon name="pricetags-outline"></ion-icon>
+    <p>No hay categorías aún</p>
+  </div>
+  }
+
+</ion-content>
