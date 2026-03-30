@@ -1,0 +1,308 @@
+$primary: #005da6;
+$primary-light: #54a3ff;
+$surface: #eff8fe;
+$surface-low: #e8f2f9;
+$on-surface: #273034;
+$on-surface-variant: #545d62;
+$outline-variant: #a5aeb4;
+
+@mixin organizer-shared {
+  .organizer-header {
+    ion-toolbar {
+      --background: rgba(239, 248, 254, 0.85);
+      --border-color: transparent;
+      backdrop-filter: blur(12px);
+    }
+
+    .app-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: $primary;
+    }
+
+    .search-btn {
+      --color: #{$primary};
+    }
+  }
+
+  .organizer-content {
+    --background: #{$surface};
+    --padding-start: 20px;
+    --padding-end: 20px;
+    --padding-top: 16px;
+    --padding-bottom: 120px;
+  }
+
+  .search-wrapper {
+    margin-bottom: 16px;
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 52px;
+    padding: 0 18px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(39, 48, 52, 0.06);
+
+    .search-icon {
+      flex-shrink: 0;
+      font-size: 20px;
+      color: $on-surface-variant;
+    }
+
+    input {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 0.95rem;
+      color: $on-surface;
+
+      &::placeholder {
+        color: $outline-variant;
+      }
+    }
+  }
+
+  .filter-chips {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    margin-bottom: 28px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .chip {
+    flex-shrink: 0;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 999px;
+    background: #fff;
+    color: #000;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+
+    &--active {
+      background: $on-surface;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(39, 48, 52, 0.2);
+    }
+  }
+
+  .section {
+    margin-bottom: 32px;
+
+    &--muted {
+      opacity: 0.65;
+    }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: $on-surface;
+  }
+
+  .section-count {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: $primary;
+  }
+
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .task-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-radius: 16px;
+    transition: box-shadow 0.2s;
+
+    &--glass {
+      background: #fff;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 16px rgba(39, 48, 52, 0.05);
+    }
+
+    &--done {
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(8px);
+    }
+
+    &__left {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    &__actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  }
+
+  .task-dot {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    box-shadow: 0 0 10px currentcolor;
+  }
+
+  .task-check {
+    display: flex;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: $primary;
+
+    ion-icon {
+      font-size: 13px;
+      color: #fff;
+    }
+  }
+
+  .task-info {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .task-title {
+    overflow: hidden;
+    color: $on-surface;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--done {
+      color: $on-surface-variant;
+      text-decoration: line-through;
+    }
+  }
+
+  .task-meta {
+    color: rgba($on-surface-variant, 0.7);
+    font-size: 0.72rem;
+    font-weight: 500;
+  }
+
+  .done-badge {
+    color: $outline-variant;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+
+  .icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+
+    ion-icon {
+      font-size: 20px;
+      color: $outline-variant;
+    }
+
+    &--danger ion-icon {
+      color: var(--ion-color-danger);
+    }
+  }
+
+  .warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    background: rgba(255, 196, 180, 0.35);
+    padding: 12px 16px;
+    color: #882200;
+    font-size: 0.85rem;
+
+    ion-icon {
+      font-size: 18px;
+      color: #ab2d00;
+    }
+  }
+
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 60px 0;
+
+    p {
+      margin: 0;
+      color: $on-surface-variant;
+      font-size: 0.9rem;
+    }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 80px 0;
+
+    ion-icon {
+      font-size: 48px;
+      color: $outline-variant;
+    }
+
+    p {
+      margin: 0;
+      color: $on-surface-variant;
+      font-size: 0.95rem;
+    }
+  }
+
+  .custom-fab {
+    --background: linear-gradient(135deg, #{$primary}, #{$primary-light});
+    --box-shadow: 0 10px 24px rgba(0, 93, 166, 0.35);
+    --border-radius: 50%;
+  }
+}

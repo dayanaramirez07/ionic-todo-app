@@ -1,0 +1,60 @@
+<ion-header class="organizer-header">
+  <ion-toolbar>
+    <ion-title class="app-title">Categorías</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="organizer-content">
+
+  @if (categories().length > 0) {
+    <div class="section">
+      <div class="section-header">
+        <h2 class="section-title"></h2>
+        <span class="section-count">Total: {{ categories().length }}</span>
+      </div>
+
+      <div class="task-list">
+        @for (cat of categories(); track cat.id) {
+          <div class="task-card task-card--glass">
+            <div class="task-card__left">
+              <div class="task-dot" [style.background]="cat.color"></div>
+              <div class="task-info">
+                <span class="task-title">{{ cat.name }}</span>
+                <span class="task-meta">
+                  {{ getCategoryTaskCount(cat.id) }}
+                  {{ getCategoryTaskCount(cat.id) === 1 ? 'tarea' : 'tareas' }}
+                </span>
+              </div>
+            </div>
+            <div class="task-card__actions">
+              <button class="icon-btn"
+                (click)="openForm(cat); $event.stopPropagation()"
+                aria-label="Editar categoría">
+                <ion-icon name="pencil-outline"></ion-icon>
+              </button>
+              <button class="icon-btn icon-btn--danger"
+                (click)="deleteCategory($index); $event.stopPropagation()"
+                aria-label="Eliminar categoría">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (categories().length === 0) {
+    <div class="empty-state">
+      <ion-icon name="pricetags-outline"></ion-icon>
+      <p>No hay categorías aún</p>
+    </div>
+  }
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button class="custom-fab" (click)="openForm()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+</ion-content>

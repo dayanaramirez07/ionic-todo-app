@@ -1,0 +1,97 @@
+workflows:
+  ionic-full-build:
+    name: Ionic Android + iOS
+    max_build_duration: 120
+
+    environment:
+      node: 22.12.0
+      groups:
+        - firebase
+
+    scripts:
+      - name: Validate Firebase secrets
+        script: |
+          test -n "$FIREBASE_API_KEY" || exit 1
+          test -n "$FIREBASE_AUTH_DOMAIN" || exit 1
+          test -n "$FIREBASE_PROJECT_ID" || exit 1
+          test -n "$FIREBASE_STORAGE_BUCKET" || exit 1
+          test -n "$FIREBASE_MESSAGING_SENDER_ID" || exit 1
+          test -n "$FIREBASE_APP_ID" || exit 1
+
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Create environment file
+        script: |
+          mkdir -p src/environments
+          cat > src/environments/environment.ts << EOF
+          export const environment = {
+            production: false,
+            firebaseConfig: {
+              apiKey: "$FIREBASE_API_KEY",
+              authDomain: "$FIREBASE_AUTH_DOMAIN",
+              projectId: "$FIREBASE_PROJECT_ID",
+              storageBucket: "$FIREBASE_STORAGE_BUCKET",
+              messagingSenderId: "$FIREBASE_MESSAGING_SENDER_ID",
+              appId: "$FIREBASE_APP_ID"
+            }
+          };
+          EOF
+          cat > src/environments/environment.prod.ts << EOF
+          export const environment = {
+            production: true,
+            firebaseConfig: {
+              apiKey: "$FIREBASE_API_KEY",
+              authDomain: "$FIREBASE_AUTH_DOMAIN",
+              projectId: "$FIREBASE_PROJECT_ID",
+              storageBucket: "$FIREBASE_STORAGE_BUCKET",
+              messagingSenderId: "$FIREBASE_MESSAGING_SENDER_ID",
+              appId: "$FIREBASE_APP_ID"
+            }
+          };
+          EOF
+
+      - name: Install Ionic CLI
+        script: npm install -g @ionic/cli
+
+      - name: Build web assets
+        script: ionic build --configuration=production
+
+      - name: Clean platforms
+        script: rm -rf platforms plugins
+
+      - name: Add Android platform
+        script: npx cordova platform add android
+
+      - name: Build Android APK
+        script: npx cordova build android
+
+      - name: Add iOS platform
+        script: npx cap add ios || true
+
+      - name: Sync iOS
+        script: npx cap sync ios
+
+      - name: Build iOS (no signing)
+        script: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -archivePath ios/App/App.xcarchive \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Create unsigned IPA
+        script: |
+          mkdir -p ios/App/build/Payload
+          cp -r ios/App/App.xcarchive/Products/Applications/App.app ios/App/build/Payload/
+          cd ios/App/build
+          zip -r app.ipa Payload
+
+    artifacts:
+      - platforms/android/app/build/outputs/**/*.apk
+      - ios/App/build/**/*.ipa
+      - ios/App/App.xcarchive/**
