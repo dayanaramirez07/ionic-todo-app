@@ -10,13 +10,15 @@ import { environment } from './environments/environment';
 
 import { addIcons } from 'ionicons';
 import {
-  add, pencil, trash, pricetag, pricetagsOutline,
-  checkmarkCircle, checkmarkCircleOutline, filterOutline
+  add, pencilOutline, pricetagsOutline, pricetags, checkmarkCircle,
+  checkmarkDone, filterOutline, searchOutline, trashOutline, ellipseOutline,
+  checkmark, checkmarkDoneOutline
 } from 'ionicons/icons';
 
 addIcons({
-  add, pencil, trash, pricetag, pricetagsOutline,
-  checkmarkCircle, checkmarkCircleOutline, filterOutline
+  add, pencilOutline, pricetagsOutline, pricetags, checkmarkCircle,
+  checkmarkDone, filterOutline, searchOutline, trashOutline, ellipseOutline,
+  checkmark, checkmarkDoneOutline
 });
 
 bootstrapApplication(AppComponent, {

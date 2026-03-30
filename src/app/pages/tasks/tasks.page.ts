@@ -1,11 +1,18 @@
-import { Component, NgZone, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+  signal,
+  computed
+} from '@angular/core';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
 import {
-  IonHeader, IonToolbar, IonTitle, IonContent, IonList,
-  IonItem, IonLabel, IonButton, IonButtons, IonIcon,
-  IonSelect, IonSelectOption, IonChip,
-  AlertController, ViewWillEnter, IonSpinner
+  IonHeader, IonToolbar, IonTitle, IonContent, IonIcon,
+  AlertController, ToastController, IonSpinner, IonFab, IonFabButton
 } from '@ionic/angular/standalone';
 
 import { Task, Category } from 'src/app/models/task.model';
@@ -16,52 +23,76 @@ import { RemoteConfigService } from 'src/app/services/remote-config';
   selector: 'app-tasks',
   templateUrl: './tasks.page.html',
   styleUrls: ['./tasks.page.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
-    CommonModule, FormsModule,
-    IonHeader, IonToolbar, IonTitle, IonContent, IonList,
-    IonItem, IonLabel, IonButton, IonButtons, IonIcon,
-    IonSelect, IonSelectOption, IonChip,
-    IonSpinner
+    CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle,
+    IonContent, IonIcon, IonSpinner, IonFab, IonFabButton
   ]
 })
-export class TasksPage implements OnInit, ViewWillEnter {
+export class TasksPage implements OnInit {
 
-  protected tasks: Task[] = [];
-  protected categories: Category[] = [];
-  protected selectedCategoryId: string | null = null;
-  protected showCompletedTasks: boolean = true;
-  protected isConfigReady: boolean = false;
-  protected visibleTasks: Task[] = [];
+  private readonly storage = inject(StorageService);
+  private readonly alertCtrl = inject(AlertController);
+  private readonly toastCtrl = inject(ToastController);
+  private readonly remoteConfig = inject(RemoteConfigService);
 
-  constructor(
-    private readonly zone: NgZone,
-    private readonly storage: StorageService,
-    private readonly alertCtrl: AlertController,
-    private readonly remoteConfig: RemoteConfigService
-  ) { }
+  protected tasks = this.storage.tasks;
+  protected categories = this.storage.categories;
 
-  public async ngOnInit() {
-    this.tasks = this.storage.getTasks();
-    this.categories = this.storage.getCategories();
+  protected selectedCategoryId = signal<string | null>(null);
+  protected searchQuery = signal('');
+  protected showCompletedTasks = signal(true);
+  protected isConfigReady = signal(false);
 
-    await this.remoteConfig.initialize();
-    this.showCompletedTasks = this.remoteConfig.getBoolean('show_completed_tasks');
+  private categoryMap = computed(() =>
+    new Map(this.categories().map(c => [c.id, c]))
+  );
 
-    this.updateVisibleTasks();
-    this.isConfigReady = true;
+  protected visibleTasks = computed(() => {
+    const normalizedSearch = this.normalize(this.searchQuery());
+
+    return this.tasks().filter(task => {
+      const matchesCategory =
+        !this.selectedCategoryId() ||
+        task.categoryId === this.selectedCategoryId();
+
+      const matchesCompleted =
+        this.showCompletedTasks() || !task.completed;
+
+      const categoryName = this.normalize(this.getCategoryName(task.categoryId));
+
+      const matchesSearch =
+        !normalizedSearch ||
+        this.normalize(task.title).includes(normalizedSearch) ||
+        categoryName.includes(normalizedSearch);
+
+      return matchesCategory && matchesCompleted && matchesSearch;
+    });
+  });
+
+  protected todayTasks = computed(() =>
+    this.visibleTasks().filter(t => !t.completed)
+  );
+
+  protected doneTasks = computed(() =>
+    this.visibleTasks().filter(t => t.completed)
+  );
+
+  async ngOnInit() {
+    try {
+      await this.remoteConfig.initialize();
+
+      this.showCompletedTasks.set(
+        this.remoteConfig.getBoolean('show_completed_tasks') ?? false
+      );
+    } finally {
+      this.isConfigReady.set(true);
+    }
   }
 
-  public ionViewWillEnter() {
-    this.tasks = this.sortTasks(this.storage.getTasks());
-    this.categories = this.storage.getCategories();
-
-    this.updateVisibleTasks();
-  }
-
-  // Helpers
   private normalize(value: string): string {
-    return value.toLowerCase();
+    return value.trim().toLowerCase();
   }
 
   private sortTasks(tasks: Task[]): Task[] {
@@ -70,11 +101,12 @@ export class TasksPage implements OnInit, ViewWillEnter {
 
   private taskExists(title: string): boolean {
     const normalized = this.normalize(title);
-    return this.tasks.some(t => this.normalize(t.title) === normalized);
+    return this.tasks().some(t => this.normalize(t.title) === normalized);
   }
 
   private findCategory(categoryId: string | null): Category | undefined {
-    return this.categories.find(c => c.id === categoryId);
+    if (!categoryId) return undefined;
+    return this.categoryMap().get(categoryId);
   }
 
   protected getCategoryName(categoryId: string | null): string {
@@ -85,29 +117,30 @@ export class TasksPage implements OnInit, ViewWillEnter {
     return this.findCategory(categoryId)?.color || '#ccc';
   }
 
-  // Actions
   protected toggleComplete(task: Task) {
-    this.tasks = this.sortTasks(
-      this.tasks.map(t =>
-        t.id === task.id
-          ? { ...t, completed: !t.completed }
-          : t
-      )
+    const willComplete = !task.completed;
+
+    const updated = this.tasks().map(t =>
+      t.id === task.id
+        ? { ...t, completed: willComplete }
+        : t
     );
 
-    this.storage.saveTasks(this.tasks);
-    this.updateVisibleTasks();
+    this.storage.setTasks(this.sortTasks(updated));
+
+    if (willComplete && !this.showCompletedTasks()) {
+      void this.showValidationToast(
+        'Tarea completada. Se oculto por configuracion remota.',
+        'warning'
+      );
+    }
   }
 
   protected async addTask() {
-    const titleAlert = await this.alertCtrl.create({
+    const alert = await this.alertCtrl.create({
       header: 'Nueva tarea',
       inputs: [
-        {
-          name: 'title',
-          type: 'text',
-          placeholder: 'Título de la tarea'
-        }
+        { name: 'title', type: 'text', placeholder: 'Título de la tarea' }
       ],
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
@@ -115,8 +148,16 @@ export class TasksPage implements OnInit, ViewWillEnter {
           text: 'Siguiente',
           handler: (data) => {
             const title = data?.title?.trim();
-            if (!title) return false;
-            if (this.taskExists(title)) return false;
+
+            if (!title) {
+              void this.showValidationToast('Ingresa un titulo de tarea.', 'warning');
+              return false;
+            }
+
+            if (this.taskExists(title)) {
+              void this.showValidationToast('Ya existe una tarea con ese titulo.', 'danger');
+              return false;
+            }
 
             this.openCategorySelector(title);
             return true;
@@ -125,21 +166,15 @@ export class TasksPage implements OnInit, ViewWillEnter {
       ]
     });
 
-    await titleAlert.present();
+    await alert.present();
   }
 
   private async openCategorySelector(title: string) {
     const alert = await this.alertCtrl.create({
       header: 'Seleccionar categoría',
       inputs: [
-        {
-          name: 'category',
-          type: 'radio',
-          label: 'Sin categoría',
-          value: null,
-          checked: true
-        },
-        ...this.categories.map(cat => ({
+        { name: 'category', type: 'radio', label: 'Sin categoría', value: null, checked: true },
+        ...this.categories().map(cat => ({
           name: 'category',
           type: 'radio' as const,
           label: cat.name,
@@ -151,7 +186,6 @@ export class TasksPage implements OnInit, ViewWillEnter {
         {
           text: 'Guardar',
           handler: (categoryId) => {
-
             const newTask: Task = {
               id: Date.now().toString(),
               title,
@@ -160,11 +194,8 @@ export class TasksPage implements OnInit, ViewWillEnter {
               createdAt: Date.now()
             };
 
-            this.zone.run(() => {
-              this.tasks = [newTask, ...this.tasks];
-              this.storage.saveTasks(this.tasks);
-              this.updateVisibleTasks();
-            });
+            const updated = this.sortTasks([newTask, ...this.tasks()]);
+            this.storage.setTasks(updated);
 
             return true;
           }
@@ -175,7 +206,7 @@ export class TasksPage implements OnInit, ViewWillEnter {
     await alert.present();
   }
 
-  protected async deleteTask(index: number) {
+  protected async deleteTask(taskId: string) {
     const alert = await this.alertCtrl.create({
       header: '¿Eliminar tarea?',
       buttons: [
@@ -184,12 +215,8 @@ export class TasksPage implements OnInit, ViewWillEnter {
           text: 'Eliminar',
           role: 'destructive',
           handler: () => {
-            const taskToDelete = this.visibleTasks[index];
-            if (!taskToDelete) return;
-
-            this.tasks = this.tasks.filter(t => t.id !== taskToDelete.id);
-            this.storage.saveTasks(this.tasks);
-            this.updateVisibleTasks();
+            const updated = this.tasks().filter(t => t.id !== taskId);
+            this.storage.setTasks(this.sortTasks(updated));
           }
         }
       ]
@@ -198,20 +225,23 @@ export class TasksPage implements OnInit, ViewWillEnter {
     await alert.present();
   }
 
-  protected onCategoryChange() {
-    this.updateVisibleTasks();
+  protected onCategoryChange(categoryId: string | null) {
+    this.selectedCategoryId.set(categoryId);
   }
 
-  private updateVisibleTasks() {
-    this.visibleTasks = this.tasks.filter(task => {
-      const matchesCategory =
-        !this.selectedCategoryId || task.categoryId === this.selectedCategoryId;
+  protected onSearchChange(value: string) {
+    this.searchQuery.set(value);
+  }
 
-      const matchesCompleted =
-        this.showCompletedTasks || !task.completed;
-
-      return matchesCategory && matchesCompleted;
+  private async showValidationToast(message: string, color: 'warning' | 'danger') {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 2200,
+      position: 'bottom',
+      color
     });
+
+    await toast.present();
   }
 
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { Category, Task } from '../models/task.model';
 
 @Injectable({
@@ -6,24 +6,32 @@ import { Category, Task } from '../models/task.model';
 })
 export class StorageService {
 
-  private TASKS_KEY: string = 'tasks';
-  private CATEGORIES_KEY: string = 'categories';
+  private readonly TASKS_KEY = 'tasks';
+  private readonly CATEGORIES_KEY = 'categories';
 
-  public getTasks(): Task[] {
+  private _tasks = signal<Task[]>(this.loadTasks());
+  private _categories = signal<Category[]>(this.loadCategories());
+
+  public readonly tasks = this._tasks.asReadonly();
+  public readonly categories = this._categories.asReadonly();
+
+  private loadTasks(): Task[] {
     const data = localStorage.getItem(this.TASKS_KEY);
     return data ? JSON.parse(data) : [];
   }
 
-  public saveTasks(tasks: Task[]): void {
-    localStorage.setItem(this.TASKS_KEY, JSON.stringify(tasks));
-  }
-
-  public getCategories(): Category[] {
+  private loadCategories(): Category[] {
     const data = localStorage.getItem(this.CATEGORIES_KEY);
     return data ? JSON.parse(data) : [];
   }
 
-  public saveCategories(categories: Category[]): void {
+  public setTasks(tasks: Task[]): void {
+    this._tasks.set(tasks);
+    localStorage.setItem(this.TASKS_KEY, JSON.stringify(tasks));
+  }
+
+  public setCategories(categories: Category[]): void {
+    this._categories.set(categories);
     localStorage.setItem(this.CATEGORIES_KEY, JSON.stringify(categories));
   }
 

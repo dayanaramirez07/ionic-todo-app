@@ -1,0 +1,38 @@
+@use '../../styles/organizer.shared' as organizer;
+
+ion-tab-button {
+  --background-focused: transparent;
+  --ripple-color: transparent;
+
+  &::part(native) {
+    border-radius: 999px;
+    transition: all 0.25s ease;
+    color: #3d5a6b;
+  }
+
+  &::part(label) {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+  }
+
+  &.tab-selected::part(native) {
+    background: linear-gradient(135deg, organizer.$primary, organizer.$primary-light);
+    box-shadow: 0 6px 18px rgba(0, 93, 166, 0.35);
+    color: #ffffff;
+  }
+
+  &::part(native):hover {
+    background: rgba(0, 93, 166, 0.08);
+    color: #3d5a6b;
+  }
+
+  &.tab-selected::part(native):hover {
+    background: linear-gradient(135deg, organizer.$primary, organizer.$primary-light);
+    color: #ffffff;
+  }
+
+  &::part(native):active {
+    background: rgba(0, 93, 166, 0.12);
+    color: #3d5a6b;
+  }
+}

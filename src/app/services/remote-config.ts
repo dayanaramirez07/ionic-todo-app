@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { RemoteConfig } from '@angular/fire/remote-config';
 import { fetchAndActivate, getValue } from '@angular/fire/remote-config';
 
@@ -9,10 +9,10 @@ export class RemoteConfigService {
 
   private initialized: boolean = false;
 
-  constructor(
-    private readonly remoteConfig: RemoteConfig
-  ) {
-    this.remoteConfig.settings.minimumFetchIntervalMillis = 0;
+  private readonly remoteConfig: RemoteConfig = inject(RemoteConfig);
+
+  constructor() {
+    this.remoteConfig.settings.minimumFetchIntervalMillis = 3600000;
     this.remoteConfig.defaultConfig = {
       show_completed_tasks: false
     };
@@ -20,8 +20,14 @@ export class RemoteConfigService {
 
   public async initialize(): Promise<void> {
     if (this.initialized) return;
-    await fetchAndActivate(this.remoteConfig);
-    this.initialized = true;
+
+    try {
+      await fetchAndActivate(this.remoteConfig);
+    } catch (e) {
+      console.error('RemoteConfig error', e);
+    } finally {
+      this.initialized = true;
+    }
   }
 
   public getBoolean(key: string): boolean {
